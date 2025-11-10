@@ -1,0 +1,36 @@
+{
+  "namespace": "com.example.flink.avro",
+  "type": "record",
+  "name": "Customer",
+  "fields": [
+    { "name": "id", "type": "long" },
+    { "name": "username", "type": "string" },
+    { "name": "password", "type": "string" },
+    { "name": "fname", "type": ["null", "string"], "default": null },
+    { "name": "lname", "type": ["null", "string"], "default": null },
+
+    {
+      "name": "bday",
+      "type": ["null", { "type": "int", "logicalType": "date" }],
+      "default": null
+    },
+
+    { "name": "address", "type": ["null", "string"], "default": null },
+    { "name": "email", "type": ["null", "string"], "default": null },
+    { "name": "phone", "type": ["null", "string"], "default": null },
+
+    {
+      "name": "create_at",
+      "type": ["null", { "type": "long", "logicalType": "timestamp-micros" }],
+      "default": null
+    },
+    {
+      "name": "update_at",
+      "type": ["null", { "type": "long", "logicalType": "timestamp-micros" }],
+      "default": null
+    },
+
+    { "name": "status", "type": ["null", "string"], "default": null },
+    { "name": "role", "type": ["null", "string"], "default": null }
+  ]
+}

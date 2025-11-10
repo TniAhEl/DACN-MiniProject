@@ -1,0 +1,74 @@
+# ====================================================
+# 🧩 Common ignore rules for Java + Maven + Docker + Kafka + Flink + Databases
+# ====================================================
+
+# OS / IDE specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+*.pid
+
+# Editor folders
+.vscode/
+.idea/
+*.iml
+
+# ====================================================
+# ☕ Java / Maven / Gradle build outputs
+# ====================================================
+target/
+build/
+out/
+*.class
+*.jar
+*.war
+*.ear
+dependency-reduced-pom.xml
+maven-status/
+maven-archiver/
+
+# ====================================================
+# 🐋 Docker / Compose / Runtime data
+# ====================================================
+# Container data volumes (databases, kafka, zookeeper)
+mysql_data/
+postgres_data/
+kafka_data/
+zookeeper_data/
+connectors/debezium-connector-mysql/
+connectors/confluentinc-kafka-connect-jdbc-10.8.4/
+volumes/
+data/
+tmp/
+logs/
+*.sock
+*.zip
+
+# ====================================================
+# 🧰 Python or Node (if included in scripts)
+# ====================================================
+venv/
+__pycache__/
+node_modules/
+npm-debug.log
+package-lock.json
+
+# ====================================================
+# 🧠 Flink / Kafka specific
+# ====================================================
+flink-job/target/
+flink-job/logs/
+checkpoints/
+savepoints/
+tmp/
+
+# ====================================================
+# 💾 OS & Misc
+# ====================================================
+ehthumbs.db
+desktop.ini
+*.orig

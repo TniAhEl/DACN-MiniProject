@@ -1,0 +1,218 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - flink-network
+      - default
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"      # host port
+      - "29092:29092"    # internal docker
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # listeners cho trong/ngoài container
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:29092"]
+      interval: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - flink-network
+      - default
+
+  kafka-connect-1:
+    image: confluentinc/cp-kafka-connect:7.5.0
+    container_name: kafka-connect-1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect-1
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "connect-cluster"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/etc/kafka-connect/jars"
+      CONNECT_REST_LISTENERS: "http://0.0.0.0:8083"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_REPLICATION_FACTOR: "1"
+      CONNECT_HEAP: "512M"
+    volumes:
+      - ./connectors:/etc/kafka-connect/jars
+    networks:
+      - default
+
+  kafka-connect-2:
+    image: confluentinc/cp-kafka-connect:7.5.0
+    container_name: kafka-connect-2
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8084:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect-2
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: "connect-cluster"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/etc/kafka-connect/jars"
+      CONNECT_REST_LISTENERS: "http://0.0.0.0:8083"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_REPLICATION_FACTOR: "1"
+      CONNECT_HEAP: "512M"
+    volumes:
+      - ./connectors:/etc/kafka-connect/jars
+    networks:
+      - flink-network
+      - default
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: schema-registry
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
+      SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
+    depends_on:
+      - kafka
+    networks:
+      - default
+
+  kafka-tools:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: kafka-tools
+    depends_on:
+      - kafka
+      - schema-registry
+    entrypoint: ["tail", "-f", "/dev/null"]
+    networks:
+      - flink-network
+      - default
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: YAVNS_5sa54GzL97T5INmWnqv
+      MYSQL_DATABASE: final
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    networks:
+      - default
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    ports:
+      - "5433:5433"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: postgres
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - flink-network
+      - default
+
+  flink-jobmanager:
+    image: flink:1.18.1-java17
+    container_name: flink-jobmanager
+    hostname: flink-jobmanager
+    ports:
+      - "8085:8081"
+      - "6123:6123"
+    command: jobmanager
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.rpc.port: 6123
+        rest.port: 8081
+        taskmanager.numberOfTaskSlots: 4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - ./lib/postgresql-42.7.3.jar:/opt/flink/lib/postgresql-42.7.3.jar
+    networks:
+      - flink-network
+      - default
+
+  flink-taskmanager:
+    image: flink:1.18.1-java17
+    container_name: flink-taskmanager
+    hostname: flink-taskmanager
+    depends_on:
+      flink-jobmanager:
+        condition: service_healthy
+    command: taskmanager
+    environment:
+      JOB_MANAGER_RPC_ADDRESS: flink-jobmanager
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        jobmanager.rpc.port: 6123
+        taskmanager.numberOfTaskSlots: 4
+        taskmanager.memory.process.size: 2048m
+    volumes:
+      - ./lib/postgresql-42.7.3.jar:/opt/flink/lib/postgresql-42.7.3.jar
+    networks:
+      - flink-network
+      - default
+
+networks:
+  flink-network:
+    name: flink-network
+  default:
+    driver: bridge

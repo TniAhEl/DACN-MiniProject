@@ -1,0 +1,36 @@
+{
+  "name": "mysql-source-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "mysql-2f43de5c-tinhalecsut-c0m5c1.g.aivencloud.com",
+    "database.port": "22599",
+    "database.user": "avnadmin",
+    "database.server.id": "184054",
+    "database.server.name": "mysql_server",
+    "database.include.list": "final",
+    "table.include.list": "final.customer",
+    "database.ssl.mode": "required",
+    "database.history.kafka.topic": "dbhistory.users",
+
+
+    "topic.prefix": "mysql_server",
+    "include.schema.changes": "true",
+
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:29092",
+    "schema.history.internal.kafka.topic": "schema-changes.mysql",
+
+    "key.converter": "io.confluent.connect.avro.AvroConverter",
+    "key.converter.schema.registry.url": "http://schema-registry:8081",
+    "key.converter.auto.register.schemas": "true",
+
+    "value.converter": "io.confluent.connect.avro.AvroConverter",
+    "value.converter.schema.registry.url": "http://schema-registry:8081",
+    "value.converter.auto.register.schemas": "true",
+    "value.converter.schemas.enable": "true",
+
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false"
+  }
+}
